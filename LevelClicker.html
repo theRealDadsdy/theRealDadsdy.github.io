@@ -329,7 +329,7 @@
     </script>
     <script>
       var xp = 0;
-      var level = 6;
+      var level = 0;
       var defence = 0;
       var levelText = document.getElementById('level');
       var xpBar = document.getElementById('xp');
@@ -353,11 +353,11 @@
       var stamina = new resource("stamina");
       var stats = [];
       var upgrades = [];
-      var gold = 210;
+      var gold = 0;
       var tempDefence = 0;
       var dodgeChance = 0;
       var dodgeCost = 0;
-      var cores = 6;
+      var cores = 0;
       var charms = [];
       var charmcost = [50, 1];
       var prestigePoints = 0;
@@ -388,7 +388,7 @@
       new item("plate", "armor", [10, 3], 20);
       new item("fabric", "armor", [3, 0], 20);
       new item("shield", "shield", 5, 10);
-      var statPoints = 30;
+      var statPoints = 0;
       var antiDie = new upgrade("anti-die", "Revive at full health when killed ", 5, function(num) {});
       new upgrade("Gold Mine", "Increase Gold Gathered ", 20, function(num) {
         currentMonster.goldMult += .1 * num
