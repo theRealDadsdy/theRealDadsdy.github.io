@@ -1,0 +1,599 @@
+<html>
+
+  <head>
+    <title>Level Clicker</title>
+  </head>
+
+  <body>
+    <script src="https://cdn.jsdelivr.net/gh/thelegendski/ski.js/addons/print.js"></script>
+    <script>
+      window.onerror = function(msg, url, line) {
+        alert(msg);
+        alert("Line " + line);
+      }
+
+    </script>
+    <div class=topbar>
+      <h1>Level Clicker</h1>
+      <span id=level></span>
+      <progress id=xp></progress>
+      <button id=levelup onclick="levelup()" style=display:none>Level Up</button>
+
+    </div>
+
+    <div class=resource>
+      <progress id=healthbar class=health></progress><br>
+      <progress id=manabar class=mana></progress><br>
+      <progress id=staminabar class=stamina></progress><br>
+    </div>
+    <br />
+    <div id="stats" class=status>
+      <h2>Status</h2>
+      <span id=health></span><br>
+      <span id=mana></span><br>
+      <span id=stamina></span><br>
+      <span id=damage></span><br>
+      <span id=gold></span><br>
+      <span id=cores></span><br>
+      <span id=defence></span><br>
+      <h3>Stats</h3>
+      <div id=statsection></div>
+      <p id=statpoi></p>
+    </div>
+    <div class=monster>
+      <h2>Monster Fight</h2>
+      <img src="https://i.pinimg.com/originals/86/67/38/866738d3f27c8e7534942d3d1b87068d.png" width="80" height="80" onclick="attack()">
+      <p id=monText></p>
+      <button onclick='if (currentMonster.level>0){currentMonster=new monster(currentMonster.level-1);update()}'>Level Down</button>
+      <button onclick='currentMonster=new monster(currentMonster.level+1);update()'>Level Up</button>
+    </div>
+    <div class=equipment>
+      <h2>Equipment</h2>
+      <h3>Weapons</h3>
+      <div id=weapon></div>
+      <h3>Armors</h3>
+      <div id=armor></div>
+      <h3>Shields</h3>
+      <div id=shield></div>
+    </div>
+    <div class=charm>
+      <h2>Charms</h2>
+      <button id=craftcharm onclick='craftcharm()'>Craft Charm: </button>
+      <div id=charms></div>
+    </div>
+    <div class=prestige>
+      <h2>Prestige</h2>
+      <button id=prestige onclick='prestige()'>Prestige: </button><br>
+      <span id=prestext></span>
+      <div id=upgrades></div>
+    </div>
+
+
+    <script>
+      class monster {
+        constructor(level) {
+          this.health = Math.round((2 ** level) * 50);
+          this.gold = Math.round(2 ** level);
+          this.healthMax = this.health;
+          this.xp = 2.5 ** level;
+          this.level = level;
+          this.damage = Math.round((1.5 ** level) * 5);
+          this.dropChance = 1 - (.97) ** level
+          this.goldMult = 1;
+          this.xpMult = 1;
+        }
+        kill() {
+          xp += this.xp * this.xpMult;
+          gold += this.gold * this.goldMult;
+          this.xpMult = 1;
+          this.goldMult = 1;
+          this.health = this.healthMax;
+          if (Math.random() < this.dropChance) {
+            cores += 1;
+          }
+        }
+        hurt(damage) {
+          this.health -= damage * (.75 + Math.random() / 2);
+          if (this.health <= 0) {
+            this.kill();
+          } else {
+            this.attack();
+          }
+        }
+        attack() {
+          if (stamina.value >= dodgeCost && Math.floor(Math.random() * 100) < dodgeChance) {
+            stamina.value -= Math.max(dodgeCost, 0);
+          } else {
+            health.value -= this.damage * (1 - defence) * (.75 + Math.random() / 2);
+            if (health.value <= 0) {
+              death();
+            }
+          }
+        }
+        update() {
+          monsterText.innerHTML = "Monster Level: " + this.level + "<br>" + "Health Remaining: " + Math.round(this.health * 100) / 100 + "/" + this.healthMax + "<br>" + "Damage per hit: " + this.damage;
+          if (defence) {
+            monsterText.innerHTML += " (" + Math.round(100 * this.damage * (1 - defence)) / 100 + ")";
+          }
+          monsterText.innerHTML += "<br>" + dodgeChance + "% chance of dodge, for " + dodgeCost + " stamina" + "<br>" + Math.round(this.dropChance * 100) + "% chance of dropping core";
+        }
+
+      }
+
+    </script>
+    <script>
+      class resource {
+        constructor(name) {
+          this.max = 100;
+          this.value = 100;
+          this.gen = 1;
+          this.name = name.charAt(0).toUpperCase() + name.slice(1);
+          this.bar = document.getElementById(name + "bar");
+          this.text = document.getElementById(name);
+          resources.push(this);
+        }
+        update() {
+          this.bar.value = this.value;
+          this.bar.max = this.max;
+          this.text.innerHTML = this.name + ": " + Math.round(this.value * 100) / 100 + "/" + this.max + " (+" + this.gen + "/s)";
+        }
+        regen() {
+          this.value = Math.min(this.value + this.gen, this.max);
+        }
+      }
+
+    </script>
+    <script>
+      class stat {
+        constructor(name, effect) {
+          this.baseValue = 10;
+          this.mult = 1;
+          this.text = document.createElement("span");
+          document.getElementById("statsection").appendChild(this.text);
+          this.effect = effect;
+          this.name = name.charAt(0).toUpperCase() + name.slice(1);
+          this.button = document.createElement("button");
+          this.button.innerHTML = "+";
+          document.getElementById("statsection").appendChild(this.button);
+          this.button.onclick = new Function("stats['" + name + "'].upgrade()");
+          document.getElementById("statsection").appendChild(document.createElement("br"));
+          stats[name] = this;
+          this.boostValue = 0;
+          new upgrade("Boost " + this.name, "Increase the effectiveness of " + this.name, 10, new Function('num', "stats['" + name + "'].mult+=num*.1"));
+        }
+        update() {
+          this.value = Math.round((this.baseValue + this.boostValue) * this.mult);
+          this.effect(this.value);
+          this.text.innerHTML = this.name + ": " + this.baseValue + " ";
+          if (this.boostValue || this.mult > 1) {
+            this.text.innerHTML += "(" + this.value + ") "
+            this.boostValue = 0;
+            this.mult = 1;
+          }
+        }
+
+        upgrade() {
+          if (statPoints) {
+            this.baseValue += 1;
+            statPoints -= 1;
+            update();
+          }
+        }
+      }
+
+    </script>
+    <script>
+      class item {
+        constructor(name, type, effect, cost, next) {
+          this.text = document.createElement("span");
+          this.type = type;
+          if (type == "weapon") {
+            this.stat = effect[0];
+            this.effectAmount = effect[1];
+          } else if (type == "armor") {
+            this.effectAmount = effect[0];
+            this.slow = effect[1];
+          } else if (type == "shield") {
+            this.effectAmount = effect;
+          }
+          this.name = name.charAt(0).toUpperCase() + name.slice(1);
+          this.button = document.createElement("button");
+          this.button.innerHTML = "Unlock: " + cost + " gold";
+          items[this.name] = this;
+          this.baseCost = cost;
+          this.cost = cost;
+          this.unl = new Function("items['" + this.name + "'].unlock();update()");
+          this.button.onclick = this.unl;
+          this.equip = new Function("equiped" + this.type + "=items['" + this.name + "'];update();");
+          this.up = new Function("items['" + this.name + "'].upgrade();update();");
+          this.break = document.createElement("br");
+          document.getElementById(this.type).appendChild(this.text);
+          document.getElementById(this.type).appendChild(this.button);
+          document.getElementById(this.type).appendChild(this.break);
+          this.level = 0;
+        }
+        unlock() {
+          if (gold >= this.cost) {
+            gold -= this.cost;
+            this.level = 1;
+          }
+        }
+        upgrade() {
+          if (gold >= this.cost) {
+            gold -= this.cost;
+            this.level += 1;
+          }
+        }
+        update() {
+          try {
+            this.cost = this.baseCost * 2 ** this.level
+            if (this.level > 0) {
+              this.button.onclick = this.equip;
+              this.button.innerHTML = "Equip";
+            } else {
+              this.button.onclick = this.unl;
+              this.button.innerHTML = "Unlock: " + this.cost + " gold";
+            }
+            if (this.type == "weapon") {
+              this.text.innerHTML = this.name + ": +" + (this.effectAmount + Math.max(this.level - 1, 0)) + " " + this.stat.name + " ";
+              if (equipedweapon == this) {
+                this.button.onclick = this.up;
+                this.button.innerHTML = "Upgrade: " + this.cost + " gold";
+                this.stat.boostValue += this.effectAmount + Math.max(this.level - 1, 0);
+              }
+            } else if (this.type == "armor") {
+              this.text.innerHTML = this.name + ": +" + (this.effectAmount + Math.max(this.level - 1, 0)) + "% defence, -" + this.slow + " Agility ";
+              if (equipedarmor == this) {
+                this.button.onclick = this.up;
+                this.button.innerHTML = "Upgrade: " + this.cost + " gold";
+                tempDefence = 1 - (1 - tempDefence) * (1 - (this.effectAmount + Math.max(this.level - 1, 0)) / 100);
+                stats["agility"].boostValue -= this.slow;
+              }
+            } else if (this.type == "shield") {
+              this.text.innerHTML = this.name + ": +" + (this.effectAmount + Math.max(this.level - 1, 0)) + "% defence ";
+              if (equipedshield == this) {
+                this.button.onclick = this.up;
+                this.button.innerHTML = "Upgrade: " + this.cost + " gold";
+                tempDefence = 1 - (1 - tempDefence) * (1 - (this.effectAmount + Math.max(this.level - 1, 0)) / 100);
+              }
+            }
+          } catch (err) {}
+        }
+      }
+
+    </script>
+    <script>
+      class charm {
+        constructor(stat, effect) {
+          this.text = document.createElement("span");
+          this.stat = stat;
+          this.effectAmount = effect;
+          this.name = "Charm " + (Object.keys(charms).length + 1);
+          this.button = document.createElement("button");
+          charms[this.name] = this;
+          this.cost = [100, 2];
+          this.button.onclick = new Function("charms['" + this.name + "'].upgrade();update();");
+          var c = document.getElementById("charms");
+          c.appendChild(this.text);
+          c.appendChild(this.button);
+          c.appendChild(document.createElement("br"));
+        }
+        upgrade() {
+          if (mana.value >= this.cost[0] && cores >= this.cost[1]) {
+            mana.value -= this.cost[0];
+            cores -= this.cost[1];
+            this.effectAmount += 1;
+            this.cost[0] += 100;
+            this.cost[1] += 1;
+          }
+        }
+        update() {
+          this.text.innerHTML = this.name + ": +" + this.effectAmount + " " + this.stat.name + " ";
+          this.button.innerHTML = "Upgrade: " + this.cost[0] + " mana, " + this.cost[1] + " cores";
+          this.stat.boostValue += this.effectAmount;
+        }
+      }
+
+    </script>
+    <script>
+      class upgrade {
+        constructor(name, desc, cost, effect) {
+          this.text = document.createElement("span");
+          this.effect = effect;
+          this.level = 0;
+          this.name = name.charAt(0).toUpperCase() + name.slice(1);
+          this.button = document.createElement("button");
+          this.baseCost = cost;
+          upgrades[this.name] = this;
+          this.button.onclick = new Function("upgrades['" + this.name + "'].buy();update();");
+          var c = document.getElementById("upgrades");
+          c.appendChild(this.text);
+          c.appendChild(this.button);
+          c.appendChild(document.createElement("br"));
+          this.desc = desc;
+        }
+        buy() {
+          if (prestigePoints >= this.baseCost * 2 ** this.level) {
+            prestigePoints -= this.baseCost * 2 ** this.level;
+            this.level += 1;
+          }
+        }
+        update() {
+          this.effect(this.level);
+          this.text.innerHTML = "Lvl " + this.level + " " + this.name + " : " + this.desc;
+          this.button.innerHTML = "Buy: " + this.baseCost * 2 ** this.level + " prestige points";
+
+        }
+      }
+
+    </script>
+    <script>
+      var xp = 0;
+      var level = 6;
+      var defence = 0;
+      var levelText = document.getElementById('level');
+      var xpBar = document.getElementById('xp');
+      var levelButton = document.getElementById('levelup');
+      var statBoard = document.getElementById('stats');
+      var damageText = document.getElementById('damage');
+      var goldText = document.getElementById('gold');
+      var monsterText = document.getElementById('monText');
+      var statPointsText = document.getElementById('statpoi');
+      var prestigeText = document.getElementById('prestext');
+      var craftButton = document.getElementById('craftcharm');
+      var prestigeButton = document.getElementById('prestige');
+      var defenceText = document.getElementById('defence');
+      var coreText = document.getElementById('cores');
+      var levelReq;
+      var damage;
+      var currentMonster = new monster(0);
+      var resources = [];
+      var health = new resource("health");
+      var mana = new resource("mana");
+      var stamina = new resource("stamina");
+      var stats = [];
+      var upgrades = [];
+      var gold = 210;
+      var tempDefence = 0;
+      var dodgeChance = 0;
+      var dodgeCost = 0;
+      var cores = 6;
+      var charms = [];
+      var charmcost = [50, 1];
+      var prestigePoints = 0;
+      new stat("vitality", function(num) {
+        health.max = num * 10;
+        health.gen = num / 10;
+      });
+      new stat("endurance", function(num) {
+        stamina.max = num * 10;
+        stamina.gen = num / 10;
+      });
+      new stat("wisdom", function(num) {
+        mana.max = num * 10;
+        mana.gen = num / 10;
+      });
+      new stat("strength", function(num) {
+        damage = num
+      });
+      new stat("agility", function(num) {
+        dodgeChance = num - currentMonster.level * 2;
+        dodgeCost = 50 - num + currentMonster.level * 5;
+      });
+      var items = [];
+      new item("sword", "weapon", [stats["strength"], 1], 5);
+      new item("apple", "weapon", [stats["vitality"], 1], 5);
+      new item("wand", "weapon", [stats["wisdom"], 1], 5);
+      new item("chain", "armor", [5, 1], 20);
+      new item("plate", "armor", [10, 3], 20);
+      new item("fabric", "armor", [3, 0], 20);
+      new item("shield", "shield", 5, 10);
+      var statPoints = 30;
+      var antiDie = new upgrade("anti-die", "Revive at full health when killed ", 5, function(num) {});
+      new upgrade("Gold Mine", "Increase Gold Gathered ", 20, function(num) {
+        currentMonster.goldMult += .1 * num
+      });
+      new upgrade("XP Farm", "Increase XP Gathered ", 20, function(num) {
+        currentMonster.xpMult += .1 * num
+      });
+
+      function update() {
+        levelReq = 1.5 ** level * 10;
+        tempDefence = 0;
+        if (computelevel()) {
+          levelButton.style.display = "block";
+        }
+
+        for (i in upgrades) {
+          upgrades[i].update();
+        }
+        for (i in items) {
+          items[i].update();
+        }
+        for (i in charms) {
+          charms[i].update();
+        }
+        for (i in stats) {
+          stats[i].update();
+        }
+        for (i in resources) {
+          resources[i].update();
+        }
+        currentMonster.update();
+        defence = tempDefence;
+        levelText.innerHTML = "Level: " + level;
+        xpBar.value = xp;
+        xpBar.max = levelReq;
+        damageText.innerHTML = "Attack Power: " + damage;
+        statPointsText.innerHTML = "Stat Points: " + statPoints;
+        goldText.innerHTML = "Gold: " + gold;
+        defenceText.innerHTML = "Defence: " + Math.round(defence * 100) + "%";
+        coreText.innerHTML = "Cores: " + cores;
+        charmcost[0] = 50 * 2 ** Object.keys(charms).length;
+        charmcost[1] = 2 ** Object.keys(charms).length;
+        craftButton.innerHTML = "Craft Charm: " + charmcost[0] + " mana, " + charmcost[1] + " cores";
+        prestigeButton.innerHTML = "Prestige: +" + calcPrestige() + " Prestige Points";
+        prestigeText.innerHTML = "Prestige Points: " + prestigePoints;
+
+      }
+
+      function computelevel() {
+        return xp >= levelReq
+      }
+
+      function attack() {
+        currentMonster.hurt(damage);
+        if (xp > levelReq) {
+          xp = levelReq
+        }
+        update();
+      }
+
+      function levelup() {
+        level += 1;
+        xp -= levelReq;
+        statPoints += 5;
+        levelButton.style.display = "none";
+        for (i in resources) {
+          resources[i].value = resources[i].max;
+        }
+        update();
+      }
+
+
+      function regen() {
+        for (i in resources) {
+          resources[i].regen();
+        }
+        update();
+      }
+
+      function death() {
+        if (antiDie.level) {
+          antiDie.level -= 1;
+          health.value = health.max;
+        } else {
+          document.body.innerHTML = "<h1>You Died!</h1>";
+        }
+      }
+
+      function craftcharm() {
+        if (mana.value >= charmcost[0] && cores >= charmcost[1]) {
+          mana.value -= charmcost[0];
+          cores -= charmcost[1];
+          var keys = Object.keys(stats);
+          stat = stats[keys[Math.floor(keys.length * Math.random())]];
+          new charm(stat, 1);
+          update();
+        }
+      }
+
+      function calcPrestige() {
+        return Math.max(level - 5, 0) ** 2;
+      }
+
+      function prestige() {
+        prestigePoints += calcPrestige();
+        level = 0;
+        currentMonster = new monster(0);
+        xp = 0;
+        gold = 0;
+        cores = 0;
+        charms = [];
+        document.getElementById("charms").innerHTML = '';
+        equipedweapon = '';
+        equipedarmor = '';
+        equipedshield = '';
+        for (i in stats) {
+          stats[i].baseValue = 10;
+        }
+        for (i in items) {
+          items[i].level = 0;
+        }
+      }
+      update();
+      setInterval(regen, 1000);
+
+    </script>
+    <style>
+      progress {
+        background: crimson;
+        color: lightblue;
+      }
+
+      body {
+        position: absolute;
+        background: lightgray;
+        left: 10px;
+      }
+
+      h1 {
+        line-height: 0px;
+      }
+
+      h2 {
+        line-height: 0px;
+      }
+
+      h3 {
+        line-height: 0px;
+      }
+
+      .resource {
+        position: fixed;
+        bottom: 5px;
+        right: 5px;
+      }
+
+      .monster {
+        position: fixed;
+        top: 82px;
+        right: 10px;
+      }
+
+      .status {
+        position: fixed;
+        top: 82px;
+        left: 10px;
+      }
+
+      .equipment {
+        position: fixed;
+        top: 82px;
+        left: 200px;
+      }
+
+      .charm {
+        position: fixed;
+        top: 82px;
+        left: 540px;
+      }
+
+      .prestige {
+        position: fixed;
+        width: 300px;
+        top: 82px;
+        left: 900px;
+      }
+
+      .topbar {
+        position: fixed;
+        top: 0px;
+      }
+
+      .health::-webkit-progress-value {
+        background: red;
+      }
+
+      .mana::-webkit-progress-value {
+        background: blue;
+      }
+
+      .stamina::-webkit-progress-value {
+        background: yellow;
+      }
+
+    </style>
+  </body>
+
+</html>
