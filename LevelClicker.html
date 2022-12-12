@@ -271,7 +271,7 @@
           this.name = "Charm " + (Object.keys(charms).length + 1);
           this.button = document.createElement("button");
           charms[this.name] = this;
-          this.cost = [100, 2];
+          this.cost = 100;
           this.button.onclick = new Function("charms['" + this.name + "'].upgrade();update();");
           var c = document.getElementById("charms");
           c.appendChild(this.text);
@@ -279,17 +279,15 @@
           c.appendChild(document.createElement("br"));
         }
         upgrade() {
-          if (mana.value >= this.cost[0] && cores >= this.cost[1]) {
-            mana.value -= this.cost[0];
-            cores -= this.cost[1];
+          if (mana.value >= this.cost) {
+            mana.value -= this.cost;
             this.effectAmount += 1;
-            this.cost[0] += 100;
-            this.cost[1] += 1;
+            this.cost += 100;
           }
         }
         update() {
           this.text.innerHTML = this.name + ": +" + this.effectAmount + " " + this.stat.name + " ";
-          this.button.innerHTML = "Upgrade: " + this.cost[0] + " mana, " + this.cost[1] + " cores";
+          this.button.innerHTML = "Upgrade: " + this.cost[0] + " mana";
           this.stat.boostValue += this.effectAmount;
         }
       }
@@ -384,6 +382,7 @@
       new item("sword", "weapon", [stats["strength"], 1], 5);
       new item("apple", "weapon", [stats["vitality"], 1], 5);
       new item("wand", "weapon", [stats["wisdom"], 1], 5);
+      new item("bow", "weapon", [stats["agility"], 1], 5);
       new item("chain", "armor", [5, 1], 20);
       new item("plate", "armor", [10, 3], 20);
       new item("fabric", "armor", [3, 0], 20);
@@ -434,6 +433,15 @@
         craftButton.innerHTML = "Craft Charm: " + charmcost[0] + " mana, " + charmcost[1] + " cores";
         prestigeButton.innerHTML = "Prestige: +" + calcPrestige() + " Prestige Points";
         prestigeText.innerHTML = "Prestige Points: " + prestigePoints;
+        if (gold>=5){
+        	showClass("equipment");
+        }
+        if (cores>=1){
+        	showClass("charm");
+        }
+        if (level>=6){
+        	showClass("prestige");
+        }
 
       }
 
@@ -511,6 +519,12 @@
           items[i].level = 0;
         }
       }
+      function showClass(classname){
+      c=document.getElementsByClassName(classname);
+      	for (var i=0;i<c.length;i++){
+        c[i].style.display="inline";
+        }
+      }
       update();
       setInterval(regen, 1000);
 
@@ -561,12 +575,14 @@
         position: fixed;
         top: 82px;
         left: 200px;
+        display:none;
       }
 
       .charm {
         position: fixed;
         top: 82px;
         left: 540px;
+        display:none;
       }
 
       .prestige {
@@ -574,6 +590,7 @@
         width: 300px;
         top: 82px;
         left: 900px;
+        display:none;
       }
 
       .topbar {
