@@ -287,7 +287,7 @@
         }
         update() {
           this.text.innerHTML = this.name + ": +" + this.effectAmount + " " + this.stat.name + " ";
-          this.button.innerHTML = "Upgrade: " + this.cost[0] + " mana";
+          this.button.innerHTML = "Upgrade: " + this.cost + " mana";
           this.stat.boostValue += this.effectAmount;
         }
       }
