@@ -360,7 +360,7 @@
       var charmcost = [50, 1];
       var prestigePoints = 0;
       new stat("vitality", function(num) {
-        health.max = num * 10;
+        health.max = num * 10+0.00000000000001;
         health.gen = num / 10;
       });
       new stat("endurance", function(num) {
@@ -507,6 +507,7 @@
         xp = 0;
         gold = 0;
         cores = 0;
+        statPoints=0;
         charms = [];
         document.getElementById("charms").innerHTML = '';
         equipedweapon = '';
