@@ -162,6 +162,9 @@
           new upgrade("Boost " + this.name, "Increase the effectiveness of " + this.name, 10, new Function('num', "stats['" + name + "'].mult+=num*.1"));
         }
         update() {
+        	if (challenge=="statless"){
+          	this.baseValue=0;
+          }
           this.value = Math.round((this.baseValue + this.boostValue) * this.mult);
           this.effect(this.value);
           this.text.innerHTML = this.name + ": " + this.baseValue + " ";
@@ -344,6 +347,7 @@
       var coreText = document.getElementById('cores');
       var levelReq;
       var damage;
+      var challenge="none";
       var currentMonster = new monster(0);
       var resources = [];
       var health = new resource("health");
