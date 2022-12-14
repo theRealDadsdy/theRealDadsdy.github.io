@@ -28,6 +28,7 @@
     </div>
     <br />
     <div id="stats" class=status>
+      <button onclick="showHide('status')">Hide status</button>
       <h2>Status</h2>
       <span id=health></span><br>
       <span id=mana></span><br>
@@ -41,13 +42,15 @@
       <p id=statpoi></p>
     </div>
     <div class=monster>
+      <button onclick="showHide('monster')">Hide monster</button>
       <h2>Monster Fight</h2>
       <img src="https://i.pinimg.com/originals/86/67/38/866738d3f27c8e7534942d3d1b87068d.png" width="80" height="80" onclick="attack()">
       <p id=monText></p>
       <button onclick='if (currentMonster.level>0){currentMonster=new monster(currentMonster.level-1);update()}'>Level Down</button>
       <button onclick='currentMonster=new monster(currentMonster.level+1);update()'>Level Up</button>
     </div>
-    <div class=equipment>
+    <div class=equipment style="display:none">
+      <button onclick="showHide('equipment')">Hide equipment</button>
       <h2>Equipment</h2>
       <h3>Weapons</h3>
       <div id=weapon></div>
@@ -56,12 +59,14 @@
       <h3>Shields</h3>
       <div id=shield></div>
     </div>
-    <div class=charm>
+    <div class=charm style="display:none">
+      <button onclick="showHide('charm')">Hide charms</button>
       <h2>Charms</h2>
       <button id=craftcharm onclick='craftcharm()'>Craft Charm: </button>
       <div id=charms></div>
     </div>
-    <div class=prestige>
+    <div class=prestige style="display:none">
+      <button onclick="showHide('prestige')">Hide prestige</button>
       <h2>Prestige</h2>
       <button id=prestige onclick='prestige()'>Prestige: </button><br>
       <span id=prestext></span>
@@ -162,8 +167,8 @@
           new upgrade("Boost " + this.name, "Increase the effectiveness of " + this.name, 10, new Function('num', "stats['" + name + "'].mult+=num*.1"));
         }
         update() {
-        	if (challenge=="statless"){
-          	this.baseValue=0;
+          if (challenge == "statless") {
+            this.baseValue = 0;
           }
           this.value = Math.round((this.baseValue + this.boostValue) * this.mult);
           this.effect(this.value);
@@ -347,7 +352,7 @@
       var coreText = document.getElementById('cores');
       var levelReq;
       var damage;
-      var challenge="none";
+      var challenge = "none";
       var currentMonster = new monster(0);
       var resources = [];
       var health = new resource("health");
@@ -363,6 +368,7 @@
       var charms = [];
       var charmcost = [50, 1];
       var prestigePoints = 0;
+      var sections=["status","equipment","charm","prestige","monster"];
       new stat("vitality", function(num) {
         health.max = num * 10;
         health.gen = num / 10;
@@ -429,7 +435,7 @@
         xpBar.max = levelReq;
         damageText.innerHTML = "Attack Power: " + damage;
         statPointsText.innerHTML = "Stat Points: " + statPoints;
-        goldText.innerHTML = "Gold: " + gold;
+        goldText.innerHTML = "Gold: " + Math.round(gold*100)/100;
         defenceText.innerHTML = "Defence: " + Math.round(defence * 100) + "%";
         coreText.innerHTML = "Cores: " + cores;
         charmcost[0] = 50 * 2 ** Object.keys(charms).length;
@@ -437,16 +443,18 @@
         craftButton.innerHTML = "Craft Charm: " + charmcost[0] + " mana, " + charmcost[1] + " cores";
         prestigeButton.innerHTML = "Prestige: +" + calcPrestige() + " Prestige Points";
         prestigeText.innerHTML = "Prestige Points: " + prestigePoints;
-        if (gold>=5){
-        	showClass("equipment");
+        if (gold >= 5) {
+          showClass("equipment");
         }
-        if (cores>=1){
-        	showClass("charm");
+        if (cores >= 1) {
+          showClass("charm");
         }
-        if (level>=6){
-        	showClass("prestige");
+        if (level >= 6) {
+          showClass("prestige");
         }
-
+        if (health.value>0){
+					updateSections();
+        }
       }
 
       function computelevel() {
@@ -511,7 +519,7 @@
         xp = 0;
         gold = 0;
         cores = 0;
-        statPoints=0;
+        statPoints = 0;
         charms = [];
         document.getElementById("charms").innerHTML = '';
         equipedweapon = '';
@@ -524,10 +532,39 @@
           items[i].level = 0;
         }
       }
-      function showClass(classname){
-      c=document.getElementsByClassName(classname);
-      	for (var i=0;i<c.length;i++){
-        c[i].style.display="inline";
+
+      function showClass(classname) {
+        c = document.getElementsByClassName(classname);
+        for (var i = 0; i < c.length; i++) {
+          c[i].style.display = "inline";
+        }
+      }
+
+      function showHide(thing) {
+        child = document.getElementsByClassName(thing)[0].children;
+        hide = child[0].innerHTML.split(" ");
+        if (hide[0] == "Hide") {
+          child[0].innerHTML = "Show " + hide[1];
+          for (var i = 1; i < child.length; i++) {
+            child[i].style.display = "none";
+          }
+        } else {
+          child[0].innerHTML = "Hide " + hide[1];
+          for (var i = 1; i < child.length; i++) {
+            child[i].style.display = "";
+          }
+        }
+        update();
+      }
+      function updateSections(){
+      	var current=0;
+        for (var i=0;i<sections.length;i++){
+          section=document.getElementsByClassName(sections[i])[0];
+        	if (section.style.display!=="none"){
+        		current+=10;
+       	 		section.style.left=current;
+          	current+=10*Math.ceil(section.offsetWidth/10);
+          }
         }
       }
       update();
@@ -580,14 +617,12 @@
         position: fixed;
         top: 82px;
         left: 200px;
-        display:none;
       }
 
       .charm {
         position: fixed;
         top: 82px;
         left: 540px;
-        display:none;
       }
 
       .prestige {
@@ -595,7 +630,6 @@
         width: 300px;
         top: 82px;
         left: 900px;
-        display:none;
       }
 
       .topbar {
