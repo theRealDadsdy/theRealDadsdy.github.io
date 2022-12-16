@@ -65,6 +65,11 @@
       <button id=craftcharm onclick='craftcharm()'>Craft Charm: </button>
       <div id=charms></div>
     </div>
+    <div class=spell>
+      <button onclick="showHide('spell')">Hide spells</button>
+      <h2>Spells</h2>
+      <div id=spells></div>
+    </div>
     <div class=prestige style="display:none">
       <button onclick="showHide('prestige')">Hide prestige</button>
       <h2>Prestige</h2>
@@ -78,9 +83,9 @@
       class monster {
         constructor(level) {
           this.health = Math.round((2 ** level) * 50);
-          this.gold = Math.round(2 ** level);
+          this.gold = Math.round(2.5 ** level);
           this.healthMax = this.health;
-          this.xp = 2.5 ** level;
+          this.xp = 3 ** level;
           this.level = level;
           this.damage = Math.round((1.5 ** level) * 5);
           this.dropChance = 1 - (.97) ** level
@@ -334,6 +339,65 @@
 
     </script>
     <script>
+      class spell {
+        constructor(name, desc, cost, resource, effect, duration) {
+          this.text = document.createElement("span");
+          this.effect = effect;
+          this.duration = duration;
+          this.name = name.charAt(0).toUpperCase() + name.slice(1);
+          this.button = document.createElement("button");
+          this.cost = cost;
+          this.resource = resource;
+          spells[this.name] = this;
+          this.button.onclick = new Function("spells['" + this.name + "'].cast();update();");
+          var c = document.getElementById("spells");
+          c.appendChild(this.text);
+          c.appendChild(this.button);
+          c.appendChild(document.createElement("br"));
+          this.desc = desc;
+        }
+        cast() {
+          if (this.resource.value >= this.cost && !(this.name in activeBuffs)) {
+            new buff(this.name, this.effect, this.duration);
+            this.resource.value -= this.cost;
+            update();
+          }
+        }
+        update() {
+          this.text.innerHTML = this.name + " : " + this.desc;
+          if (this.name in activeBuffs) {
+            this.text.innerHTML += "<br>Time Remaining: " + activeBuffs[this.name].time + "/" + this.duration + "s ";
+            this.button.innerHTML = "Spell Running";
+          } else {
+            this.text.innerHTML += "<br>Duration: " + this.duration + "s ";
+            this.button.innerHTML = "Cast Spell: " + this.cost + " " + this.resource.name;
+          }
+        }
+      }
+
+    </script>
+    <script>
+      class buff {
+        constructor(id, effect, duration) {
+          activeBuffs[id] = this;
+          this.id = id;
+          this.time = duration;
+          this.effect = effect;
+        }
+        end() {
+          delete activeBuffs[this.id];
+          this.effect = function(num) {}
+        }
+        update() {
+          this.effect(stats["intelligence"].value / 10);
+          if (this.time <= 0) {
+            this.end();
+          }
+        }
+      }
+
+    </script>
+    <script>
       var xp = 0;
       var level = 0;
       var defence = 0;
@@ -361,14 +425,32 @@
       var stats = [];
       var upgrades = [];
       var gold = 0;
+      var damageBuff = 0;
       var tempDefence = 0;
       var dodgeChance = 0;
       var dodgeCost = 0;
       var cores = 0;
+      var spells = [];
+      var activeBuffs = [];
+      new spell("Summon XP", "Summons Xp", 10, mana, function(num) {
+        xp += num;
+      }, 0);
+      new spell("Boost Damage", "Boosts Damage", 10, mana, function(num) {
+        damage += num;
+      }, 10);
+      new spell("Mana Gen", "Boosts mana gerneration", 10, mana, function(num) {
+        mana.gen += num;
+      }, 10);
+      new spell("Int Boost", "Boosts intelligence", 10, mana, function(num) {
+        stats["intelligence"].boostValue += num;
+      }, 10);
+      new spell("Wis Boost", "Boosts wisdom", 10, mana, function(num) {
+        stats["wisdom"].boostValue += num;
+      }, 10);
       var charms = [];
       var charmcost = [50, 1];
       var prestigePoints = 0;
-      var sections=["status","equipment","charm","prestige","monster"];
+      var sections = ["status", "equipment", "charm", "spell", "prestige", "monster"];
       new stat("vitality", function(num) {
         health.max = num * 10;
         health.gen = num / 10;
@@ -382,12 +464,13 @@
         mana.gen = num / 10;
       });
       new stat("strength", function(num) {
-        damage = num
+        damage = num;
       });
       new stat("agility", function(num) {
         dodgeChance = num - currentMonster.level * 2;
         dodgeCost = 50 - num + currentMonster.level * 5;
       });
+      new stat("intelligence", function(num) {});
       var items = [];
       new item("sword", "weapon", [stats["strength"], 1], 5);
       new item("apple", "weapon", [stats["vitality"], 1], 5);
@@ -400,10 +483,10 @@
       var statPoints = 0;
       var antiDie = new upgrade("anti-die", "Revive at full health when killed ", 5, function(num) {});
       new upgrade("Gold Mine", "Increase Gold Gathered ", 20, function(num) {
-        currentMonster.goldMult += .1 * num
+        currentMonster.goldMult = 1 + .1 * num
       });
       new upgrade("XP Farm", "Increase XP Gathered ", 20, function(num) {
-        currentMonster.xpMult += .1 * num
+        currentMonster.xpMult = 1 + .1 * num
       });
 
       function update() {
@@ -412,7 +495,9 @@
         if (computelevel()) {
           levelButton.style.display = "block";
         }
-
+        for (i in spells) {
+          spells[i].update();
+        }
         for (i in upgrades) {
           upgrades[i].update();
         }
@@ -425,6 +510,9 @@
         for (i in stats) {
           stats[i].update();
         }
+        for (i in activeBuffs) {
+          activeBuffs[i].update();
+        }
         for (i in resources) {
           resources[i].update();
         }
@@ -435,7 +523,7 @@
         xpBar.max = levelReq;
         damageText.innerHTML = "Attack Power: " + damage;
         statPointsText.innerHTML = "Stat Points: " + statPoints;
-        goldText.innerHTML = "Gold: " + Math.round(gold*100)/100;
+        goldText.innerHTML = "Gold: " + Math.round(gold * 100) / 100;
         defenceText.innerHTML = "Defence: " + Math.round(defence * 100) + "%";
         coreText.innerHTML = "Cores: " + cores;
         charmcost[0] = 50 * 2 ** Object.keys(charms).length;
@@ -452,8 +540,8 @@
         if (level >= 6) {
           showClass("prestige");
         }
-        if (health.value>0){
-					updateSections();
+        if (health.value > 0) {
+          updateSections();
         }
       }
 
@@ -484,6 +572,9 @@
       function regen() {
         for (i in resources) {
           resources[i].regen();
+        }
+        for (i in activeBuffs) {
+          activeBuffs[i].time -= 1;
         }
         update();
       }
@@ -556,14 +647,15 @@
         }
         update();
       }
-      function updateSections(){
-      	var current=0;
-        for (var i=0;i<sections.length;i++){
-          section=document.getElementsByClassName(sections[i])[0];
-        	if (section.style.display!=="none"){
-        		current+=10;
-       	 		section.style.left=current;
-          	current+=10*Math.ceil(section.offsetWidth/10);
+
+      function updateSections() {
+        var current = 0;
+        for (var i = 0; i < sections.length; i++) {
+          section = document.getElementsByClassName(sections[i])[0];
+          if (section.style.display !== "none") {
+            current += 10;
+            section.style.left = current;
+            current += 10 * Math.ceil(section.offsetWidth / 10);
           }
         }
       }
@@ -625,9 +717,14 @@
         left: 540px;
       }
 
+      .spell {
+        position: fixed;
+        top: 82px;
+        left: 540px;
+      }
+
       .prestige {
         position: fixed;
-        width: 300px;
         top: 82px;
         left: 900px;
       }
