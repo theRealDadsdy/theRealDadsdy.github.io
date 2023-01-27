@@ -8,9 +8,9 @@ app = Flask(__name__)
 def save_value():
     value = request.form['value']
     # authenticate to GitHub using an access token
-    g = Github(os.environ['GITHUB_TOKEN'])
+    g = Github("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")
     # find the repository
-    repo = g.get_repo("OWNER/REPO_NAME")
+    repo = g.get_repo("theRealDadsdy/theRealDadsdy.github.io");
     #create or get the file
     file_name = "file.txt"
     file_content = value
