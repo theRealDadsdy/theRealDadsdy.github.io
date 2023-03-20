@@ -1,8 +1,7 @@
 $(document).ready(function() {
   $('#click').click(function(event) {
     event.preventDefault();
-    var inputValue = $('#input-value').val();
-    $.post('/save-value', {value: inputValue}, function(response) {
+    $.post('/save-value', {value: 1}, function(response) {
       if (response) {
         alert('Value saved successfully');
         p = document.getElementById("clicks");
